@@ -1,0 +1,108 @@
+// booking_page.dart
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:http/src/response.dart';
+
+import 'package:talhadnad/api_client/lib/api.dart';
+
+class MarketLayoutPage extends StatefulWidget {
+  final String? marketId;
+  final String? bookingId;
+
+  const MarketLayoutPage({
+    this.marketId,
+    this.bookingId,
+    super.key,
+  });
+
+  @override
+  State<MarketLayoutPage> createState() => _BookingPageState();
+}
+
+class _BookingPageState extends State<MarketLayoutPage> {
+  DtosSlotResponse? slot;
+  @override
+  void initState() {
+    super.initState();
+    loadMarketSlot();
+  }
+
+  Future<void> loadMarketSlot() async {
+    if (widget.marketId == null) return;
+
+    try {
+      Response slots =
+          await SlotsApi().slotsGetIdGetWithHttpInfo(widget.marketId!);
+
+      if (slots.statusCode == 200) {
+        List<DtosSlotResponse>? slotsList =
+            await SlotsApi().slotsGetIdGet(widget.marketId!);
+        if (slotsList != null && slotsList.isNotEmpty) {
+          setState(() {
+            slot = slotsList.first;
+          });
+        } else {
+          if (kDebugMode) {
+            print('No slots found for the given market ID.');
+          }
+        }
+
+        slotsList?.forEach((slot) {
+          if (slot.status == 'available') {
+            if (kDebugMode) {
+              print('Slot ID: ${slot.name} is available');
+            }
+          }
+        });
+      } else {
+        if (kDebugMode) {
+          print('No slots found for the given market ID.');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          // Optionally set an error state
+        });
+      }
+      print('Error fetching slot: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.bookingId != null) {
+      // Logic to fetch and display existing booking details
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('View Booking'),
+        ),
+        body: Center(
+          child: Text('Displaying booking details for ID: ${slot?.id}'),
+        ),
+      );
+    } else if (widget.marketId != null) {
+      // Logic to create a new booking for the given market
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Booking'),
+        ),
+        body: Center(
+          child:
+              Text('Creating a new booking for Market ID: ${widget.marketId}'),
+        ),
+      );
+    } else {
+      // Handle unexpected scenario
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Booking'),
+        ),
+        body: const Center(
+          child: Text('Invalid Booking Request'),
+        ),
+      );
+    }
+  }
+}

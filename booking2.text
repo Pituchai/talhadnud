@@ -1,0 +1,647 @@
+import 'package:flutter/material.dart';
+import 'package:talhadnad/api_client/lib/api.dart' as api;
+import 'package:talhadnad/theme/slot_theme.dart';
+
+typedef ApiEntitiesSlot = api.EntitiesSlot;
+
+enum SlotStatus { Available, Selected, Booked }
+
+class MarketLayout extends StatefulWidget {
+  final Function(String?) onSlotSelected;
+  final List<ApiEntitiesSlot>? slots;
+
+  const MarketLayout({
+    Key? key,
+    required this.onSlotSelected,
+    this.slots,
+  }) : super(key: key);
+
+  @override
+  _MarketLayoutState createState() => _MarketLayoutState();
+}
+
+class _MarketLayoutState extends State<MarketLayout> {
+  Map<String, ApiEntitiesSlot> slotDataMap = {};
+  String? selectedSlot;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeSlotData();
+  }
+
+  @override
+  void didUpdateWidget(MarketLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.slots != oldWidget.slots) {
+      _initializeSlotData();
+    }
+  }
+
+  void _initializeSlotData() {
+    slotDataMap.clear();
+    if (widget.slots != null) {
+      for (var slot in widget.slots!) {
+        String slotId = _extractSlotId(slot.id);
+        slotDataMap[slotId] = slot;
+      }
+    }
+    setState(() {});
+  }
+
+  String _extractSlotId(String? fullId) {
+    if (fullId == null) return '';
+    List<String> parts = fullId.split('-');
+    if (parts.length >= 7) {
+      return "${parts[5]}-${parts[6]}";
+    }
+    return fullId;
+  }
+
+  SlotStatus _getSlotStatus(ApiEntitiesSlot? slot) {
+    if (slot == null) return SlotStatus.Available;
+    switch (slot.status?.toString().toLowerCase()) {
+      case 'booked':
+        return SlotStatus.Booked;
+      default:
+        return SlotStatus.Available;
+    }
+  }
+
+  void _handleSlotTap(String slotId) {
+    print("Slot tapped: $slotId");
+
+    ApiEntitiesSlot? tappedSlot = slotDataMap[slotId];
+
+    if (tappedSlot != null) {
+      setState(() {
+        if (selectedSlot == slotId) {
+          selectedSlot = null;
+        } else {
+          selectedSlot = slotId;
+        }
+      });
+
+      widget.onSlotSelected(selectedSlot);
+
+      _showSlotDetails(tappedSlot);
+    } else {
+      print("No data found for slot ID: $slotId");
+      _showSnackBar("No data slot: $slotId");
+    }
+  }
+
+  void _handleOutsideTap() {
+    if (selectedSlot != null) {
+      setState(() {
+        selectedSlot = null;
+      });
+      widget.onSlotSelected(null);
+      _showSnackBar("Selection cleared");
+    }
+  }
+
+  void _showSlotDetails(ApiEntitiesSlot slot) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: 200,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 5,
+                  blurRadius: 7,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Slot Details',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text('ID: ${slot.id}'),
+                Text('Status: ${slot.status}'),
+                Text('Price: ${slot.price}'),
+                Text('Market: ${slot.marketId}'),
+                Text('Date: ${slot.date}'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double scaleFactor = 0.82;
+        final double slotWidth = (constraints.maxWidth / 6.7) * scaleFactor;
+        final double tempmaxWidth = (constraints.maxWidth / 6) * scaleFactor;
+        final double slotHeight = ((tempmaxWidth * 0.6) + 15) * scaleFactor;
+
+        return GestureDetector(
+          onTap: _handleOutsideTap,
+          behavior: HitTestBehavior.opaque,
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(height: slotHeight, width: slotWidth),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 3 * scaleFactor),
+                      child: _buildSlot('B-1', slotWidth, slotHeight),
+                    ),
+                    SizedBox(
+                        height: slotHeight, width: slotWidth - 6 * scaleFactor),
+                    SizedBox(
+                        height: slotHeight,
+                        width: slotWidth - 12 * scaleFactor),
+                    _buildSlot('B-2', slotWidth, slotHeight),
+                    _buildSlot('B-3', slotWidth, slotHeight),
+                    _buildSlot('B-4', slotWidth, slotHeight),
+                    _buildSlot('B-5', slotWidth, slotHeight),
+                  ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(
+                        height: slotHeight,
+                        width: slotWidth + 0.5 * scaleFactor),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 3 * scaleFactor),
+                      child: _buildSlot('B-6', slotWidth, slotHeight),
+                    ),
+                  ],
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        _buildSlot('A-1', slotWidth, slotHeight),
+                        _buildSlot('A-2', slotWidth, slotHeight),
+                      ],
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                children: [
+                                  _buildSlot('C-1', slotWidth, slotHeight),
+                                  _buildSlot('C-2', slotWidth, slotHeight),
+                                ],
+                              ),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth - 6 * scaleFactor),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth - 12 * scaleFactor),
+                              Column(
+                                children: [
+                                  _buildSlot('D-1', slotWidth, slotHeight),
+                                  _buildSlot('D-2', slotWidth, slotHeight),
+                                ],
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 5, bottom: 3),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[400],
+                                    border: Border.all(),
+                                    borderRadius:
+                                        BorderRadius.circular(4 * scaleFactor),
+                                  ),
+                                  height: 110 * scaleFactor,
+                                  width: 160 * scaleFactor,
+                                  child: const Center(
+                                    child: Text(
+                                      'Shop',
+                                      style: TextStyle(
+                                        fontFamily: 'Quicksand',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14 * scaleFactor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              _buildSlot('E-1', slotWidth, slotHeight),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: (slotWidth + 28) * scaleFactor),
+                              _buildSlot('E-2', slotWidth, slotHeight),
+                              _buildSlot('E-3', slotWidth, slotHeight),
+                              _buildSlot('E-4', slotWidth, slotHeight),
+                              _buildSlot('E-5', slotWidth, slotHeight),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              _buildSlot('F-1', slotWidth, slotHeight),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(height: slotHeight, width: slotWidth),
+                            _buildSlot('G-1', slotWidth, slotHeight),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 1 * scaleFactor, left: 4 * scaleFactor),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color.fromARGB(255, 187, 186, 186),
+                                  borderRadius:
+                                      BorderRadius.circular(4 * scaleFactor),
+                                  border: Border.all(),
+                                ),
+                                height: slotHeight,
+                                width: slotWidth * 2 + 3,
+                                child: const Center(
+                                  child: Text(
+                                    'Stair',
+                                    style: TextStyle(
+                                      fontFamily: 'Quicksand',
+                                      fontSize: 16 * scaleFactor,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3 * scaleFactor),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth + 3.5 * scaleFactor),
+                              _buildSlot('G-2', slotWidth, slotHeight),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildSlot('G-3', slotWidth, slotHeight),
+                            _buildSlot('G-4', slotWidth, slotHeight),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        _buildSlot('H-1', slotWidth, slotHeight),
+                        _buildSlot('H-2', slotWidth, slotHeight),
+                        _buildSlot('H-3', slotWidth, slotHeight),
+                        _buildSlot('H-4', slotWidth, slotHeight),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 187, 186, 186),
+                              borderRadius:
+                                  BorderRadius.circular(4 * scaleFactor),
+                              border: Border.all(),
+                            ),
+                            width: slotWidth * 3,
+                            height: 215 * scaleFactor,
+                            child: const Center(
+                              child: Text(
+                                'Canteen',
+                                style: TextStyle(
+                                  fontFamily: 'Quicksand',
+                                  fontSize: 16 * scaleFactor,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSlot(String slotId, double width, double height) {
+    final slot = slotDataMap[slotId];
+    final status = _getSlotStatus(slot);
+    final isSelected = selectedSlot == slotId;
+    final color = isSelected ? Colors.blue.shade100 : getSlotColor(status);
+    final borderColor = isSelected ? Colors.blue : getBorderColor(status);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 3),
+      child: GestureDetector(
+        onTap: () {
+          _handleSlotTap(slotId);
+        },
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: color,
+            border: Border.all(color: borderColor, width: 2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Center(
+            child: Text(
+              slotId,
+              style: TextStyle(
+                fontSize: width * 0.3,
+                fontFamily: 'Quicksand',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+Row(
+                  children: [
+                    SizedBox(
+                        height: slotHeight,
+                        width: slotWidth + 0.5 * scaleFactor),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 3 * scaleFactor),
+                      child: _buildSlot('B-6', slotWidth, slotHeight),
+                    ),
+                  ],
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        _buildSlot('A-1', slotWidth, slotHeight),
+                        _buildSlot('A-2', slotWidth, slotHeight),
+                      ],
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                children: [
+                                  _buildSlot('C-1', slotWidth, slotHeight),
+                                  _buildSlot('C-2', slotWidth, slotHeight),
+                                ],
+                              ),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth - 6 * scaleFactor),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth - 12 * scaleFactor),
+                              Column(
+                                children: [
+                                  _buildSlot('D-1', slotWidth, slotHeight),
+                                  _buildSlot('D-2', slotWidth, slotHeight),
+                                ],
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 5, bottom: 3),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[400],
+                                    border: Border.all(),
+                                    borderRadius:
+                                        BorderRadius.circular(4 * scaleFactor),
+                                  ),
+                                  height: 110 * scaleFactor,
+                                  width: 160 * scaleFactor,
+                                  child: const Center(
+                                    child: Text(
+                                      'Shop',
+                                      style: TextStyle(
+                                        fontFamily: 'Quicksand',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14 * scaleFactor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              _buildSlot('E-1', slotWidth, slotHeight),
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: (slotWidth + 28) * scaleFactor),
+                              _buildSlot('E-2', slotWidth, slotHeight),
+                              _buildSlot('E-3', slotWidth, slotHeight),
+                              _buildSlot('E-4', slotWidth, slotHeight),
+                              _buildSlot('E-5', slotWidth, slotHeight),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              _buildSlot('F-1', slotWidth, slotHeight),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(height: slotHeight, width: slotWidth),
+                            _buildSlot('G-1', slotWidth, slotHeight),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 1 * scaleFactor, left: 4 * scaleFactor),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color.fromARGB(255, 187, 186, 186),
+                                  borderRadius:
+                                      BorderRadius.circular(4 * scaleFactor),
+                                  border: Border.all(),
+                                ),
+                                height: slotHeight,
+                                width: slotWidth * 2 + 3,
+                                child: const Center(
+                                  child: Text(
+                                    'Stair',
+                                    style: TextStyle(
+                                      fontFamily: 'Quicksand',
+                                      fontSize: 16 * scaleFactor,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3 * scaleFactor),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                  height: slotHeight,
+                                  width: slotWidth + 3.5 * scaleFactor),
+                              _buildSlot('G-2', slotWidth, slotHeight),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildSlot('G-3', slotWidth, slotHeight),
+                            _buildSlot('G-4', slotWidth, slotHeight),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                        SizedBox(
+                            height: slotHeight,
+                            width: slotWidth * 2 - 14 * scaleFactor),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        _buildSlot('H-1', slotWidth, slotHeight),
+                        _buildSlot('H-2', slotWidth, slotHeight),
+                        _buildSlot('H-3', slotWidth, slotHeight),
+                        _buildSlot('H-4', slotWidth, slotHeight),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 187, 186, 186),
+                              borderRadius:
+                                  BorderRadius.circular(4 * scaleFactor),
+                              border: Border.all(),
+                            ),
+                            width: slotWidth * 3,
+                            height: 215 * scaleFactor,
+                            child: const Center(
+                              child: Text(
+                                'Canteen',
+                                style: TextStyle(
+                                  fontFamily: 'Quicksand',
+                                  fontSize: 16 * scaleFactor,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
