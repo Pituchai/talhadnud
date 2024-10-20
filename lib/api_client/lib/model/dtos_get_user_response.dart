@@ -19,6 +19,9 @@ class DtosGetUserResponse {
     this.id,
     this.lastName,
     this.username,
+    
+
+    
   });
 
   ///

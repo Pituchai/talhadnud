@@ -4,41 +4,42 @@ import 'package:go_router/go_router.dart';
 import 'package:talhadnad/theme/talhadnad_theme.dart';
 import 'package:talhadnad/widgets/BottomNavBar.dart';
 import 'package:talhadnad/model/user_model.dart';
+import 'package:talhadnad/api_client/lib/api.dart';
 
-// Mock data for a vendor
-class VendorMockData {
-  final String id;
-  final String username;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final String phone;
-  final String image;
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({Key? key}) : super(key: key);
 
-  VendorMockData({
-    required this.id,
-    required this.username,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-    required this.phone,
-    required this.image,
-  });
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
 }
 
-// Create a mock vendor
-final mockVendor = VendorMockData(
-  id: "1",
-  username: "kayalvishi",
-  email: "kayal.vishi@example.com",
-  firstName: "Kayal",
-  lastName: "Vishi",
-  phone: "+66 6282 283 8324",
-  image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Outdoors-man-portrait_%28cropped%29.jpg/1200px-Outdoors-man-portrait_%28cropped%29.jpg", // You can replace this with a local asset path
-);
+class _ProfilePageState extends State<ProfilePage> {
+  bool isLoading = true;
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  @override
+  void initState() {
+    super.initState();
+    _fetchVendorDetails();
+  }
+
+  Future<void> _fetchVendorDetails() async {
+    final userModel = Provider.of<UserModel>(context, listen: false);
+    try {
+      await userModel.fetchVendorDetails();
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching vendor details: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _navigateToEditProfile() {
+    context.push('/profile-edit');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,120 +47,120 @@ class ProfilePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Container(
-            height: MediaQuery.of(context).size.height * 0.265,
-            color: oxfordBlue,
-            child: Column(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
               children: [
-                const SizedBox(height: 50),
-                const Text(
-                  'Profile',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.265,
+                  color: oxfordBlue,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 50),
+                      const Text(
+                        'Profile',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20),
+                      ),
+                      if (userModel.vendorDetails != null)
+                        _buildProfileHeader(userModel.vendorDetails!),
+                    ],
+                  ),
                 ),
-                _buildProfileHeader(mockVendor),
+                Expanded(
+                  child: Container(
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: ListView(
+                      padding: EdgeInsets.all(20),
+                      children: [
+                        _buildMenuItem('My Bookings', Icons.calendar_today_outlined,
+                            () {
+                          context.push('/myBookings');
+                        }),
+                        _buildMenuItem(
+                            'Wallet', Icons.account_balance_wallet_outlined, () {
+                          context.push('/wallet');
+                        }),
+                        _buildMenuItem('Refer & Earn', Icons.card_giftcard_outlined,
+                            () {
+                          context.push('/referAndEarn');
+                        }),
+                        _buildMenuItem('Help & Support', Icons.help_outline, () {
+                          context.push('/helpAndSupport');
+                        }),
+                        _buildMenuItem('About Us', Icons.info_outline, () {
+                          context.push('/aboutUs');
+                        }),
+                        SizedBox(height: 20),
+                        _buildLogoutButton(context, userModel),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          Expanded(
-            child: Container(
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: ListView(
-                padding: EdgeInsets.all(20),
-                children: [
-                  _buildMenuItem('My Bookings', Icons.calendar_today_outlined,
-                      () {
-                    context.push('/myBookings');
-                  }),
-                  _buildMenuItem(
-                      'Wallet', Icons.account_balance_wallet_outlined, () {
-                    context.push('/wallet');
-                  }),
-                  _buildMenuItem('Refer & Earn', Icons.card_giftcard_outlined,
-                      () {
-                    context.push('/referAndEarn');
-                  }),
-                  _buildMenuItem('Help & Support', Icons.help_outline, () {
-                    context.push('/helpAndSupport');
-                  }),
-                  _buildMenuItem('About Us', Icons.info_outline, () {
-                    context.push('/aboutUs');
-                  }),
-                  SizedBox(height: 20),
-                  _buildLogoutButton(context, userModel),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
       bottomNavigationBar: const BottomNavBar(selectedIndex: 3),
     );
   }
-
-  Widget _buildProfileHeader(VendorMockData vendor) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(vendor.image),
-                backgroundColor: Colors.blue,
-                child: vendor.image.isEmpty
-                    ? Icon(Icons.person, size: 50, color: Colors.white)
-                    : null,
+Widget _buildProfileHeader(DtosGetUserResponse vendor) {
+  return Padding(
+    padding: const EdgeInsets.all(20.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.blue,
+              child: Text(
+                vendor.username?.isNotEmpty == true ? vendor.username![0].toUpperCase() : '',
+                style: TextStyle(fontSize: 30, color: Colors.white),
               ),
-              SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 10),
-                  Text(
-                    '${vendor.firstName} ${vendor.lastName}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    vendor.phone,
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.edit_note,
-              color: Colors.white,
-              size: 34,
             ),
-            onPressed: () {
-              // TODO: Add functionality for editing profile
-            },
+            SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10),
+                Text(
+                  vendor.username ?? 'User',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  vendor.email ?? '',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+          ],
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.edit_note,
+            color: Colors.white,
+            size: 34,
           ),
-        ],
-      ),
-    );
-  }
+          onPressed: _navigateToEditProfile,
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildMenuItem(String title, IconData icon, VoidCallback onTap) {
     return InkWell(

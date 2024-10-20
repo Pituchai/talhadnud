@@ -19,6 +19,8 @@ import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:meta/meta.dart';
 
+
+
 part 'api_client.dart';
 part 'api_helper.dart';
 part 'api_exception.dart';
@@ -40,6 +42,7 @@ part 'model/dtos_booking_response.dart';
 part 'model/dtos_date_range.dart';
 part 'model/dtos_get_list_market_response.dart';
 part 'model/dtos_get_user_response.dart';
+part 'model/dtos_update_user_request.dart';
 part 'model/dtos_market_request.dart';
 part 'model/dtos_market_response.dart';
 part 'model/dtos_register_request.dart';

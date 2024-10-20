@@ -243,6 +243,8 @@ this.basePath = 'http://127.0.0.1:3000/api/v1' ,
           return DtosGetListMarketResponse.fromJson(value);
         case 'DtosGetUserResponse':
           return DtosGetUserResponse.fromJson(value);
+         case 'DtosUpdateUserRequest':
+          return DtosUpdateUserRequest.fromJson(value);
         case 'DtosMarketRequest':
           return DtosMarketRequest.fromJson(value);
         case 'DtosMarketResponse':

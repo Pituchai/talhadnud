@@ -52,7 +52,7 @@ class _RegisterBodyState extends State<RegisterBody> {
 
         print('registerResponse: $registerResponse');
         print('Registration Status Code: ${registerResponse.statusCode}');
-      print('Registration Response Body: ${registerResponse.body}');
+        print('Registration Response Body: ${registerResponse.body}');
 
 
         if (!mounted) return;

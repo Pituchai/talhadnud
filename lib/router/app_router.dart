@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:talhadnad/model/user_model.dart';
+import 'package:talhadnad/src/screen/edit_profile_page.dart';
 import 'package:talhadnad/src/screen/landing_page.dart';
 import 'package:talhadnad/src/screen/login_page.dart';
 import 'package:talhadnad/src/screen/register_page.dart';
@@ -52,6 +53,10 @@ class AppRouter {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfilePage(),
+      ),
+       GoRoute(
+        path: '/profile-edit',
+        builder: (context, state) => const EditProfilePage(),
       ),
       GoRoute(
         path: '/payment',

@@ -1,6 +1,4 @@
-// vendor_details.dart
-
-import 'package:talhadnad/models/booking.dart'; // Ensure this import points to your Booking model file
+import 'package:talhadnad/model/booking.dart';
 
 class VendorDetails {
   final String id;
@@ -12,7 +10,7 @@ class VendorDetails {
   final String phone;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final List<Booking> bookings;
+  final List<Booking>? bookings;
 
   VendorDetails({
     required this.id,
@@ -24,7 +22,7 @@ class VendorDetails {
     required this.phone,
     required this.createdAt,
     required this.updatedAt,
-    required this.bookings,
+    this.bookings,
   });
 
   factory VendorDetails.fromJson(Map<String, dynamic> json) {
@@ -40,7 +38,22 @@ class VendorDetails {
       updatedAt: DateTime.parse(json['updated_at']),
       bookings: (json['bookings'] as List<dynamic>?)
           ?.map((booking) => Booking.fromJson(booking))
-          .toList() ?? [],
+          .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'image': image,
+      'first_name': firstName,
+      'last_name': lastName,
+      'phone': phone,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'bookings': bookings?.map((booking) => booking.toJson()).toList(),
+    };
   }
 }

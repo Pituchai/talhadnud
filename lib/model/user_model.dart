@@ -52,6 +52,7 @@ class UserModel extends ChangeNotifier {
 
     try {
       _vendorDetails = await getUserById(vendorId);
+      print('Fetched vendor details: ${_vendorDetails?.toJson()}'); // Add this line for debugging
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
@@ -59,6 +60,96 @@ class UserModel extends ChangeNotifier {
       }
       rethrow;
     }
+  }
+
+
+  bool get isLogged => accessToken.isNotEmpty;
+
+  Future<void> login(String username, String password) async {
+    final api = AuthApi();
+    final loginRequest =
+        EntitiesLoginRequest(password: password, usernameOrEmail: username);
+
+    try {
+      var res = await api.authLoginPostWithHttpInfo(loginRequest);
+
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> userData = jsonDecode(res.body);
+        vendorId = userData['vendor_id'] ?? '';
+        accessToken = userData['access_token'] ?? '';
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', accessToken);
+        await prefs.setString('vendor_id', vendorId);
+
+        ApiService.setAuthToken(accessToken);
+
+        await fetchVendorDetails();
+
+        _isInitialized = true;
+        notifyListeners();
+
+        if (kDebugMode) {
+          print('Login successful');
+        }
+      } else {
+        if (kDebugMode) {
+          print('Login failed with status code: ${res.statusCode}');
+        }
+        throw Exception('Login failed: ${res.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error during login: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('vendor_id');
+    accessToken = "";
+    vendorId = "";
+    _vendorDetails = null;
+    _isInitialized = false;
+    notifyListeners();
+  }
+
+
+  Future<void> updateProfile(DtosUpdateUserRequest updateRequest) async {
+    try {
+      print('Updating profile for user ID: $vendorId');
+      print('Update request: ${jsonEncode(updateRequest.toJson())}');
+
+      final updatedUser =
+          await ApiService.usersApi.usersIdPut(vendorId, updateRequest);
+
+      if (updatedUser == null) {
+        throw Exception('No response received from the server');
+      }
+
+      print('Updated user data: ${jsonEncode(updatedUser.toJson())}');
+
+      // Update the local vendor details with the response from the server
+      _vendorDetails = updatedUser;
+      notifyListeners();
+      print('Profile updated successfully');
+    } on ApiException catch (e) {
+      print('API Exception: Code ${e.code}, Message: ${e.message}');
+      rethrow;
+    } catch (e) {
+      print('Error updating profile: $e');
+      rethrow;
+    }
+  }
+
+  DtosGetUserResponse? getCurrentUserDetails() {
+    if (_vendorDetails == null) {
+      fetchVendorDetails();
+    }
+    return _vendorDetails;
   }
 
   Future<DtosGetUserResponse?> getUserById(String id) async {
@@ -89,7 +180,8 @@ class UserModel extends ChangeNotifier {
 
   Future<Response> createBooking(DtosBookingRequest booking) async {
     try {
-      Response res = await ApiService.bookingsApi.bookingsCreatePostWithHttpInfo(booking);
+      Response res =
+          await ApiService.bookingsApi.bookingsCreatePostWithHttpInfo(booking);
       if (kDebugMode) {
         print('Booking created successfully: ${res.toString()}');
       }
@@ -102,7 +194,8 @@ class UserModel extends ChangeNotifier {
     }
   }
 
-  Future<List<EntitiesSlot>?> getSlotsByMarketIdAndDate(String marketId, String date) async {
+  Future<List<EntitiesSlot>?> getSlotsByMarketIdAndDate(
+      String marketId, String date) async {
     try {
       return await SlotsApi().slotsMarketsMarketIDDateDateGet(marketId, date);
     } catch (e) {
@@ -162,7 +255,9 @@ class UserModel extends ChangeNotifier {
 
       if (jsonResponse['status'] == 'success') {
         List<dynamic> marketsList = jsonResponse['data'];
-        return marketsList.map((marketJson) => Market.fromJson(marketJson)).toList();
+        return marketsList
+            .map((marketJson) => Market.fromJson(marketJson))
+            .toList();
       } else {
         throw Exception('Failed to fetch markets: ${jsonResponse['message']}');
       }
@@ -176,7 +271,8 @@ class UserModel extends ChangeNotifier {
 
   Future<Response> registerUser(DtosRegisterRequest registerRequest) async {
     try {
-      Response registerResponse = await AuthApi().authRegisterPostWithHttpInfo(registerRequest);
+      Response registerResponse =
+          await AuthApi().authRegisterPostWithHttpInfo(registerRequest);
       if (kDebugMode) {
         print('User registered successfully: ${registerResponse.toString()}');
         print('Response body: ${registerResponse.body}');
@@ -190,56 +286,4 @@ class UserModel extends ChangeNotifier {
     }
   }
 
-  bool get isLogged => accessToken.isNotEmpty;
-
-  Future<void> login(String username, String password) async {
-    final api = AuthApi();
-    final loginRequest = EntitiesLoginRequest(password: password, usernameOrEmail: username);
-
-    try {
-      var res = await api.authLoginPostWithHttpInfo(loginRequest);
-
-      if (res.statusCode == 200) {
-        final Map<String, dynamic> userData = jsonDecode(res.body);
-        vendorId = userData['vendor_id'] ?? '';
-        accessToken = userData['access_token'] ?? '';
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', accessToken);
-        await prefs.setString('vendor_id', vendorId);
-
-        ApiService.setAuthToken(accessToken);
-
-        await fetchVendorDetails();
-
-        _isInitialized = true;
-        notifyListeners();
-
-        if (kDebugMode) {
-          print('Login successful');
-        }
-      } else {
-        if (kDebugMode) {
-          print('Login failed with status code: ${res.statusCode}');
-        }
-        throw Exception('Login failed: ${res.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error during login: $e');
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('vendor_id');
-    accessToken = "";
-    vendorId = "";
-    _vendorDetails = null;
-    _isInitialized = false;
-    notifyListeners();
-  }
 }

@@ -1,8 +1,9 @@
 // booking.dart
 
-import 'package:talhadnad/models/slot.dart';
-import 'package:talhadnad/models/vendor.dart';
-import 'package:talhadnad/models/payment.dart';
+import 'package:talhadnad/model/vendor.dart';
+import 'package:talhadnad/model/slot.dart';
+
+import 'package:talhadnad/model/payment.dart';
 
 enum BookingStatus {
   pending,
